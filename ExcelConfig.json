@@ -1,0 +1,18 @@
+[
+  {
+    "existingPath": "D:\\Projects\\Southeastern Construction\\TOGO.xls",
+    "newPath": "D:\\Projects\\BLK\\TOGO.xls"
+  },
+  {
+    "existingPath": "https://www.google.com/",
+    "newPath": "https://microsoft.com/"
+  },
+  {
+    "existingPath": "https://www.udemy.com/",
+    "newPath": "https://learn.microsoft.com/en-us/"
+  },
+  {
+    "existingPath": "Excel is Awesome",
+    "newPath": "Power Platform is Awesome"
+  }
+]
