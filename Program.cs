@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,12 +19,23 @@ namespace Excel_Macro_Manager
         
         static void Main(string[] args)
         {
-            IList<ExcelConfig> excelConfigList =  InitializeConfig();
-            
-            foreach (string file in Directory.EnumerateFiles(folderPath, "*.xls*"))
+            Console.WriteLine("Start execution...");
+            try
             {
-                ProcessFile(file, excelConfigList);
+                IList<ExcelConfig> excelConfigList = InitializeConfig();
+
+                foreach (string file in Directory.EnumerateFiles(folderPath, "*.xls*"))
+                {
+                    ProcessFile(file, excelConfigList);
+                }
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            Console.WriteLine("Completed execution");
+            Console.WriteLine("Press enter to close the app.");
+            Console.ReadLine();
         }
 
 
@@ -50,15 +61,30 @@ namespace Excel_Macro_Manager
         /// <param name="filename"></param>
         public static void ProcessFile(string filename, IList<ExcelConfig> excelConfigList)
         {
-            Console.WriteLine(" Processing file... " + filename);
-            Excel.Application excelApp = new Excel.Application();
-            excelApp.Visible = true;
-            Workbook workbook = excelApp.Workbooks.Open(filename);
-            WriteMacroAsTextFile(workbook);
-            UpdateMacroCodeModule(workbook,excelConfigList);
-            workbook.Save();
-            excelApp.Quit();
-            Console.WriteLine(" Compted file... " + filename);
+            try
+            {
+                if (filename.Contains("\\~$"))
+                {
+                    Console.WriteLine("Skipping file... " + filename);
+                }
+                else
+                {
+                    Console.WriteLine("Processing file... " + filename);
+                    Excel.Application excelApp = new Excel.Application();
+                    excelApp.Visible = true;
+                    Workbook workbook = excelApp.Workbooks.Open(filename);
+                    WriteMacroAsTextFile(workbook);
+                    UpdateMacroCodeModule(workbook, excelConfigList);
+                    excelApp.Quit();
+                    Console.WriteLine("Completed processing... " + filename);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error occoured while processing file: " + filename);
+                Console.WriteLine(ex.Message);
+            }
+            
         }
 
         /// <summary>
@@ -68,43 +94,58 @@ namespace Excel_Macro_Manager
         /// <param name="excelConfigList"></param>
         static void UpdateMacroCodeModule(Workbook workbook, IList<ExcelConfig> excelConfigList)
         {
-            foreach (VBComponent component in workbook.VBProject.VBComponents)
+            try
             {
-                CodeModule module = component.CodeModule;
-                string name = module.Name;
-                if (module.Name != "ThisWorkbook" && !module.Name.StartsWith("Sheet"))
+                foreach (VBComponent component in workbook.VBProject.VBComponents)
                 {
-                    string lines2 = module.get_Lines(1, module.CountOfLines);
-                    string[] lines = module.get_Lines(1, module.CountOfLines).Split(
-                            new string[] { "\r\n" },
-                            StringSplitOptions.RemoveEmptyEntries);
-                    //Console.WriteLine(component.CodeModule.Name);
-
-                    foreach (ExcelConfig config in excelConfigList)
+                    CodeModule module = component.CodeModule;
+                    string name = module.Name;
+                    if (module.Name != "ThisWorkbook" && !module.Name.StartsWith("Sheet"))
                     {
-                        for (int i = 0; i < lines.Length; i++)
+                        string lines2 = module.get_Lines(1, module.CountOfLines);
+                        string[] lines = module.get_Lines(1, module.CountOfLines).Split(
+                                new string[] { "\r\n" },
+                                StringSplitOptions.RemoveEmptyEntries);
+                        foreach (ExcelConfig config in excelConfigList)
                         {
-                            if (lines[i].Contains(config.existingPath))
+                            for (int i = 0; i < lines.Length; i++)
                             {
-                                lines[i] = lines[i].Replace(config.existingPath, config.newPath);
-                                module.ReplaceLine(i + 1, lines[i]);
+                                if (lines[i].Contains(config.existingPath))
+                                {
+                                    lines[i] = lines[i].Replace(config.existingPath, config.newPath);
+                                    module.ReplaceLine(i + 1, lines[i]);
+                                }
                             }
                         }
                     }
+                    workbook.Save();
                 }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error occoured while updating module");
+                Console.WriteLine(ex.Message);
             }
         }
         
         static void WriteMacroAsTextFile(Workbook workbook)
         {
-            foreach (VBComponent component in workbook.VBProject.VBComponents)
+            try
             {
-                CodeModule module = component.CodeModule;
-                if (module.Name != "ThisWorkbook" && !module.Name.StartsWith("Sheet"))
+                foreach (VBComponent component in workbook.VBProject.VBComponents)
                 {
-                    component.Export(folderPathToWriteFiles + component.CodeModule.Name + ".txt");
-                    component.Properties.ToString();
+                    CodeModule module = component.CodeModule;
+                    if (module.Name != "ThisWorkbook" && !module.Name.StartsWith("Sheet"))
+                    {
+                        component.Export(folderPathToWriteFiles + component.CodeModule.Name + ".txt");
+                        component.Properties.ToString();
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error occoured while wrting macro as text file.");
+                Console.WriteLine(ex.Message);
             }
         }
 
